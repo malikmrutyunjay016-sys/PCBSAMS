@@ -291,7 +291,9 @@ export const HomeView: React.FC<HomeViewProps> = ({
             </h1>
 
             <p className="text-stone-700 dark:text-stone-300 text-lg sm:text-xl font-normal leading-relaxed">
-              Empowering rural youth through excellence in higher education. Manage UG admissions, spot round real-time seat tracking, HOD departmental portfolios, and secure student databases.
+              {canSeeSpotRound 
+                ? 'Empowering rural youth through excellence in higher education. Manage UG admissions, spot round real-time seat tracking, HOD departmental portfolios, and secure student databases.'
+                : 'Empowering rural youth through excellence in higher education. Manage UG admissions, subject seat matrix, HOD departmental portfolios, and secure student databases.'}
             </p>
 
             <div className="flex flex-wrap gap-4 pt-2">

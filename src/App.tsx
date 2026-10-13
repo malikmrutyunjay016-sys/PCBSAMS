@@ -1043,7 +1043,6 @@ export default function App() {
 
     const restoredData = payload.data;
 
-    // 1. Instant local restore into React state and LocalStorage caches
     if (Array.isArray(restoredData.students) && restoredData.students.length > 0) {
       setStudents(restoredData.students);
       saveActiveStudentsCache(restoredData.students);
@@ -1074,8 +1073,6 @@ export default function App() {
     if (Array.isArray(restoredData.hodAccounts)) {
       setHodAccounts(restoredData.hodAccounts);
       localStorage.setItem('SAMS_HOD_CREDENTIALS_ACCOUNTS', JSON.stringify(restoredData.hodAccounts));
-      // Async write hod credentials to Firestore
-      setDoc(doc(db, 'systemSettings', 'hodCredentials'), { accounts: restoredData.hodAccounts, updatedAt: new Date().toISOString() }, { merge: true }).catch(console.warn);
     }
 
     if (Array.isArray(restoredData.auditLogs)) {
@@ -1086,59 +1083,22 @@ export default function App() {
       handleToggleSpotRound(restoredData.spotRoundSettings.enabled);
     }
 
-    // 2. High-speed parallel Firestore Cloud Sync (with 5s per-batch timeout so sync never blocks UI)
-    if (!isFirestoreQuotaExhausted() && Array.isArray(restoredData.students) && restoredData.students.length > 0) {
+    // Push restored student data to Firestore if not quota exhausted
+    if (!isFirestoreQuotaExhausted() && Array.isArray(restoredData.students)) {
       try {
-        const batchSize = 100; // Fast & lightweight
-        const chunks: Student[][] = [];
+        const batchSize = 400;
         for (let i = 0; i < restoredData.students.length; i += batchSize) {
-          chunks.push(restoredData.students.slice(i, i + batchSize));
-        }
-
-        // Process in concurrent pools of 5 batches
-        const CONCURRENCY = 5;
-        for (let i = 0; i < chunks.length; i += CONCURRENCY) {
-          const pool = chunks.slice(i, i + CONCURRENCY);
-          await Promise.allSettled(
-            pool.map(chunk => {
-              const batch = writeBatch(db);
-              chunk.forEach(s => {
-                if (s.id) {
-                  batch.set(doc(db, 'students', s.id), s, { merge: true });
-                }
-              });
-              // Race against a 5-second timeout per batch to prevent network stalls
-              return Promise.race([
-                batch.commit(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Cloud sync timeout')), 5000))
-              ]);
-            })
-          );
-        }
-      } catch (e: any) {
-        if (isQuotaError(e)) {
-          markQuotaExhausted();
-          setIsQuotaLimited(true);
-        }
-        console.warn('Firestore restore sync warning:', e);
-      }
-    }
-
-    // Auxiliary collection sync
-    if (!isFirestoreQuotaExhausted()) {
-      try {
-        if (Array.isArray(restoredData.departments)) {
-          for (const d of restoredData.departments) {
-            if (d.id) setDoc(doc(db, 'departments', d.id), d, { merge: true }).catch(console.warn);
-          }
-        }
-        if (Array.isArray(restoredData.faculty)) {
-          for (const f of restoredData.faculty) {
-            if (f.id) setDoc(doc(db, 'faculty', f.id), f, { merge: true }).catch(console.warn);
-          }
+          const batch = writeBatch(db);
+          const chunk = restoredData.students.slice(i, i + batchSize);
+          chunk.forEach(s => {
+            if (s.id) {
+              batch.set(doc(db, 'students', s.id), s, { merge: true });
+            }
+          });
+          await batch.commit();
         }
       } catch (e) {
-        console.warn('Auxiliary collection restore sync warning:', e);
+        console.warn('Firestore restore sync warning:', e);
       }
     }
 
@@ -1204,6 +1164,7 @@ export default function App() {
           <SeatMatrixView 
             students={students} 
             userRole={userRole}
+            isSpotRoundEnabled={isSpotRoundEnabled}
             sanctionedSeatsMap={sanctionedSeatsMap}
             defaultSeatsMap={defaultSeatsMap}
             seatsMeta={seatsMeta}
@@ -1302,6 +1263,7 @@ export default function App() {
         {activeTab === 'contact' && (
           <ContactUsView 
             userRole={userRole}
+            isSpotRoundEnabled={isSpotRoundEnabled}
             onAuditLog={(action, details) => addAuditLog(userInfo?.name || 'Admin', action, details)}
           />
         )}

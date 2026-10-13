@@ -37,6 +37,7 @@ interface SeatMatrixViewProps {
   students?: Student[];
   onSelectSubjectFilter?: (subject: string) => void;
   userRole?: 'admin' | 'hod' | 'student' | null;
+  isSpotRoundEnabled?: boolean;
   onAuditLog?: (action: string, details: string) => void;
   sanctionedSeatsMap?: Record<string, number>;
   defaultSeatsMap?: Record<string, number>;
@@ -55,6 +56,7 @@ export const SeatMatrixView: React.FC<SeatMatrixViewProps> = ({
   students = [], 
   onSelectSubjectFilter,
   userRole = null,
+  isSpotRoundEnabled = true,
   onAuditLog,
   sanctionedSeatsMap: propsCustomSeats,
   defaultSeatsMap: propsDefaultSeats,
@@ -423,7 +425,9 @@ export const SeatMatrixView: React.FC<SeatMatrixViewProps> = ({
             </p>
           </div>
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-3 sm:p-4">
-            <p className="text-[11px] text-amber-200 font-semibold uppercase">Spot Vacancies</p>
+            <p className="text-[11px] text-amber-200 font-semibold uppercase">
+              {(isSpotRoundEnabled || isAdmin) ? 'Spot Vacancies' : 'Vacant Seats'}
+            </p>
             <p className="text-2xl sm:text-3xl font-serif font-bold mt-1 text-amber-300">{totalVacancy}</p>
             <p className="text-[10px] text-amber-200/80 mt-0.5">Open admission seats</p>
           </div>
@@ -557,7 +561,9 @@ export const SeatMatrixView: React.FC<SeatMatrixViewProps> = ({
                 <th className="py-3.5 px-3 text-center">Type</th>
                 <th className="py-3.5 px-4 text-center">Sanctioned Seats</th>
                 <th className="py-3.5 px-4 text-center">Admitted Count</th>
-                <th className="py-3.5 px-4 text-center">Spot Vacancy</th>
+                <th className="py-3.5 px-4 text-center">
+                  {(isSpotRoundEnabled || isAdmin) ? 'Spot Vacancy' : 'Vacant Seats'}
+                </th>
                 <th className="py-3.5 px-4 text-center">Status</th>
                 {isAdmin && <th className="py-3.5 px-4 text-center">Admin Action</th>}
               </tr>

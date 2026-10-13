@@ -23,6 +23,7 @@ interface KeyOfficer {
 
 interface ContactUsViewProps {
   userRole: 'admin' | 'hod' | 'student' | null;
+  isSpotRoundEnabled?: boolean;
   onAuditLog?: (action: string, details: string) => void;
 }
 
@@ -66,7 +67,7 @@ const DEFAULT_MESSAGES: ContactMessage[] = [
   }
 ];
 
-export const ContactUsView: React.FC<ContactUsViewProps> = ({ userRole, onAuditLog }) => {
+export const ContactUsView: React.FC<ContactUsViewProps> = ({ userRole, isSpotRoundEnabled = true, onAuditLog }) => {
   const [messages, setMessages] = useState<ContactMessage[]>(() => {
     try {
       const saved = localStorage.getItem('SAMS_CONTACT_INQUIRIES');
@@ -442,7 +443,9 @@ export const ContactUsView: React.FC<ContactUsViewProps> = ({ userRole, onAuditL
                     className="w-full px-3.5 py-2.5 bg-stone-50 dark:bg-stone-800 border border-amber-200 dark:border-stone-700 rounded-xl text-sm focus:ring-2 focus:ring-amber-600 focus:outline-none"
                   >
                     <option value="Admission Inquiry">Admission Inquiry</option>
-                    <option value="Spot Round">Spot Round Seats</option>
+                    {(isSpotRoundEnabled || userRole === 'admin') && (
+                      <option value="Spot Round">Spot Round Seats</option>
+                    )}
                     <option value="Fee & Payment">Fee & Payment Query</option>
                     <option value="Technical Support">Technical Support</option>
                     <option value="General Query">General Query</option>
